@@ -1,5 +1,3 @@
-# IMDB_DatasetOf_50K_MovieReviews/main.py
-
 import torch
 import uvicorn
 import torch.nn as nn
@@ -11,21 +9,23 @@ from pydantic import BaseModel, field_validator
 from torchtext.data import get_tokenizer
 
 BASE_DIR = Path(__file__).parent
-HIDDEN_DIM = 64  # ← должно совпадать с тем, что было при обучении (см. ноутбук)
+HIDDEN_DIM = 64
 
 
 # ── Model ──────────────────────────────────────────────────────────────────────
 class SentimentModel(nn.Module):
-    def __init__(self, vocab_size, embed_dim=64, hidden_dim=HIDDEN_DIM, output_dim=2):
+    def __init__(self, vocab_size, embed_dim=64, hidden_dim=HIDDEN_DIM, output_dim=2, dropout=0.5):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
         self.lstm = nn.LSTM(embed_dim, hidden_dim, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
         x = self.embedding(x)
-        _, (hidden, _) = self.lstm(x)
-        return self.fc(hidden[-1])
+        _, (h_n, _) = self.lstm(x)
+        x = self.dropout(h_n[-1])
+        return self.fc(x)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
